@@ -56,6 +56,16 @@ def add_task(args: argparse.Namespace) -> int:
     return new_task.task_id
 
 
+def list_tasks(args: argparse.Namespace) -> None:
+    tasks = load_tasks_from_json()
+
+    if args.filter is not None:
+        tasks = [task for task in tasks if task.get("status") == args.filter]
+
+    tasks = json.dumps(tasks, indent=4)
+    print(tasks)
+
+
 def create_parser():
     parser = argparse.ArgumentParser(description="Task Manager CLI")
     # Add subparsers such that several command-line commands can be added to the same line
@@ -97,6 +107,7 @@ def create_parser():
     )
 
     list_parser = subparsers.add_parser("list", help="List all tasks.")
+    list_parser.set_defaults(func=list_tasks)
     list_parser.add_argument(
         "filter",
         nargs="?",
