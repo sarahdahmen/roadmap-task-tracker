@@ -5,7 +5,7 @@ import time
 
 from enum import StrEnum
 
-PATH_TO_JSON = "./tasks.json" # pathlib Path
+PATH_TO_JSON = "./tasks.json"  # pathlib Path
 
 
 class TaskStatus(StrEnum):
@@ -29,45 +29,47 @@ class NewTask:
         self.updated_at = self.created_at
 
 
-# TODO: Read and write independent from functionality
-def load_tasks_from_json():
-    # TODO: Use dict instead of list
+def load_tasks_from_json() -> dict[str, dict[str, str]]:
     if os.path.exists(PATH_TO_JSON):
         with open(PATH_TO_JSON, "r") as json_file:
             try:
                 return json.load(json_file)
             except json.JSONDecodeError:
-                return []
+                return {}
     else:
-        return []
+        return {}
 
 
-def write_task_to_json(new_task: NewTask) -> bool:
-    tasks = load_tasks_from_json()
-    tasks.append(vars(new_task))
-
+def save_tasks_to_json(tasks: dict[str, dict[str, str]]) -> bool:
     with open(PATH_TO_JSON, "w") as json_file:
         json.dump(tasks, json_file, indent=4)
         return True
     return False
 
 
+def write_task_to_json(new_task: NewTask) -> bool:
+    tasks = load_tasks_from_json()
+    tasks[new_task.task_id] = vars(new_task)
+    return save_tasks_to_json(tasks)
+
+
 def add_task(args: argparse.Namespace) -> int:
     new_task = NewTask(args.task_name)
-    write_task_to_json(new_task)
-    print(new_task.task_id)
-    return new_task.task_id
+    result = write_task_to_json(new_task)
+    if result:
+        print(new_task.task_id)
+        return new_task.task_id
+    return -1
 
 
 def delete_task(args: argparse.Namespace) -> bool:
     tasks = load_tasks_from_json()
-    for i, task in enumerate(tasks):
-        if task['task_id'] == args.task_id:
+    for i in tasks:
+        if i == str(args.task_id):
             del tasks[i]
-            # TODO: delete from JSON
+            save_tasks_to_json(tasks)
             return True
     return False
-    
 
 
 def list_tasks(args: argparse.Namespace) -> None:
