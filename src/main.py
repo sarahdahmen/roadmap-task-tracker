@@ -1,11 +1,11 @@
 import argparse
 import json
-import os
 import time
 
 from enum import StrEnum
+from pathlib import Path
 
-PATH_TO_JSON = "./tasks.json"  # pathlib Path
+PATH_TO_JSON = Path("./tasks.json")
 
 
 class TaskStatus(StrEnum):
@@ -16,7 +16,6 @@ class TaskStatus(StrEnum):
 
 def create_unique_id() -> int:
     # ensures that IDs are sequential
-    # TODO: Consider smaller IDs and max id var
     return int(time.time() * 1000)
 
 
@@ -30,7 +29,7 @@ class NewTask:
 
 
 def load_tasks_from_json() -> dict[str, dict[str, str]]:
-    if os.path.exists(PATH_TO_JSON):
+    if PATH_TO_JSON.exists():
         with open(PATH_TO_JSON, "r") as json_file:
             try:
                 return json.load(json_file)
@@ -62,21 +61,40 @@ def add_task(args: argparse.Namespace) -> int:
     return -1
 
 
-def delete_task(args: argparse.Namespace) -> bool:
+def change_dict(action: str, args: argparse.Namespace, **kwargs) -> bool:
     tasks = load_tasks_from_json()
-    for i in tasks:
-        if i == str(args.task_id):
-            del tasks[i]
-            save_tasks_to_json(tasks)
-            return True
-    return False
+    task_id = str(args.task_id)
+    if task_id in tasks:
+        match action:
+            case "delete_task":
+                del tasks[task_id]
+            case "update_task":
+                tasks[task_id]["description"] = args.updated_task_name
+            case "update_task_status":
+                tasks[task_id]["status"] = kwargs["status"]
+            case _:
+                return False
+    else:
+        return False
+    return save_tasks_to_json(tasks)
+
+
+def delete_task(args: argparse.Namespace) -> bool:
+    return change_dict("delete_task", args)
+
+
+def update_task(args: argparse.Namespace) -> bool:
+    return change_dict("update_task", args)
+
+
+def update_task_status(args: argparse.Namespace, *, status: str) -> bool:
+    return change_dict("update_task_status", args, status=status)
 
 
 def list_tasks(args: argparse.Namespace) -> None:
     tasks = load_tasks_from_json()
-
     if args.filter is not None:
-        tasks = [task for task in tasks if task.get("status") == args.filter]
+        tasks = [task for task in tasks.values() if task.get("status") == args.filter]
 
     tasks = json.dumps(tasks, indent=4)
     print(tasks)
@@ -98,6 +116,7 @@ def create_parser():
     )
 
     update_parser = subparsers.add_parser("update", help="Update an existing task.")
+    update_parser.set_defaults(func=update_task)
     update_parser.add_argument(
         "task_id", type=int, help="The ID of the task to be updated."
     )
@@ -112,13 +131,16 @@ def create_parser():
     delete_parser.add_argument(
         "task_id", type=int, help="The ID of the task to be deleted."
     )
+    from functools import partial
 
     progress_parser = subparsers.add_parser("mark-in-progress")
+    progress_parser.set_defaults(func=partial(update_task_status, status=TaskStatus.IN_PROGRESS))
     progress_parser.add_argument(
         "task_id", type=int, help="The ID of the task to be marked in progress."
     )
 
     done_parser = subparsers.add_parser("mark-done")
+    done_parser.set_defaults(func=partial(update_task_status, status=TaskStatus.DONE))
     done_parser.add_argument(
         "task_id", type=int, help="The ID of the task to be marked as done."
     )
@@ -129,7 +151,7 @@ def create_parser():
         "filter",
         nargs="?",
         type=str,
-        choices=["done", "todo", "in-progress"],
+        choices=[TaskStatus.DONE, TaskStatus.TODO, TaskStatus.IN_PROGRESS],
         help="List all tasks based on a specific filter.",
     )
 
