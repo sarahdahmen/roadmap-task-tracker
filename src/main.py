@@ -3,6 +3,7 @@ import json
 import time
 
 from enum import StrEnum
+from functools import partial
 from pathlib import Path
 
 PATH_TO_JSON = Path("./tasks.json")
@@ -131,7 +132,6 @@ def create_parser():
     delete_parser.add_argument(
         "task_id", type=int, help="The ID of the task to be deleted."
     )
-    from functools import partial
 
     progress_parser = subparsers.add_parser("mark-in-progress")
     progress_parser.set_defaults(func=partial(update_task_status, status=TaskStatus.IN_PROGRESS))
