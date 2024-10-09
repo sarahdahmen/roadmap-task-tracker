@@ -1,5 +1,5 @@
 # About
-https://roadmap.sh/projects/task-tracker
+This is my solution for the task described here: https://roadmap.sh/projects/task-tracker
 
 # How to run
 ```
