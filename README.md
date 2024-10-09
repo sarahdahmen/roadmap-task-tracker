@@ -2,6 +2,7 @@
 This is my solution for the task described here: https://roadmap.sh/projects/task-tracker
 
 # How to run
+Go to src and execute any of the following commands.
 ```
 python3 main.py add "Buy Groceries"
 python3 main.py delete <task_id>
